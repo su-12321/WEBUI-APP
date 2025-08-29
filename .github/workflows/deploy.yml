@@ -1,0 +1,48 @@
+name: Deploy to GitHub Pages
+
+on:
+  schedule:
+    - cron: '30 */6 * * *'  # 在私有仓库运行后30分钟运行
+  workflow_dispatch:  # 允许手动触发
+  repository_dispatch:  # 允许从私有仓库触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+    - name: Checkout public repo
+      uses: actions/checkout@v3
+      
+    - name: Checkout private repo (weather data)
+      uses: actions/checkout@v3
+      with:
+        repository: su-12321/weather-data-private
+        token: ${{ secrets.ACCESS_TOKEN }}
+        path: private-data
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v2
+      
+    - name: Copy weather data
+      run: |
+        mkdir -p data
+        cp private-data/weather_data.json data/
+        cp private-data/joke.txt data/
+      
+    - name: Build with Jekyll
+      uses: actions/jekyll-build-pages@v1
+      with:
+        source: ./
+        destination: ./_site
+        
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v1
+      
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v1
