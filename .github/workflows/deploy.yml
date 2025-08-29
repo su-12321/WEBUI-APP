@@ -19,14 +19,14 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Checkout private repo (weather data)
-      uses: actions/upload-artifact@v4
+      uses: actions/checkout@v4  # 这里应该是 checkout，不是 upload-artifact
       with:
         repository: su-12321/weather-data-private
         token: ${{ secrets.weather-project-access }}
         path: private-data
         
     - name: Setup Pages
-      uses: actions/configure-pages@v2
+      uses: actions/configure-pages@v3  # 更新到最新版本
       
     - name: Copy weather data
       run: |
@@ -41,8 +41,8 @@ jobs:
         destination: ./_site
         
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v1
+      uses: actions/upload-pages-artifact@v2  # 更新到 v2
       
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v1
+      uses: actions/deploy-pages@v2  # 更新到 v2
