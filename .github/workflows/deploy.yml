@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v3
       
     - name: Checkout private repo (weather data)
-      uses: actions/checkout@v3
+      uses: actions/upload-artifact@v4
       with:
         repository: su-12321/weather-data-private
         token: ${{ secrets.weather-project-access }}
