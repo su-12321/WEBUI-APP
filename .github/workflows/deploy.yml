@@ -22,7 +22,7 @@ jobs:
       uses: actions/checkout@v4  # 使用 v4
       with:
         repository: su-12321/weather-
-        token: ${{secrets.ACCESS_TOKEN}}
+        token: ${{secrets.ACCESS_TOKEN0}}
         path: private-data
         
     - name: Setup Pages
