@@ -21,7 +21,7 @@ jobs:
     - name: Checkout private repo (weather data)
       uses: actions/checkout@v4  # 使用 v4
       with:
-        repository: su-12321/weather-data-private
+        repository: su-12321/weather-
         token: ${{secrets.ACCESS_TOKEN_den}}
         path: private-data
         
