@@ -19,14 +19,14 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Checkout private repo (weather data)
-      uses: actions/checkout@v4  # 这里应该是 checkout，不是 upload-artifact
+      uses: actions/checkout@v4
       with:
         repository: su-12321/weather-data-private
         token: ${{ secrets.weather-project-access }}
         path: private-data
         
     - name: Setup Pages
-      uses: actions/configure-pages@v3  # 更新到最新版本
+      uses: actions/configure-pages@v3
       
     - name: Copy weather data
       run: |
@@ -34,15 +34,25 @@ jobs:
         cp private-data/weather_data.json data/
         cp private-data/joke.txt data/
       
-    - name: Build with Jekyll
-      uses: actions/jekyll-build-pages@v1
-      with:
-        source: ./
-        destination: ./_site
+    - name: Prepare site files
+      run: |
+        # 创建必要的目录结构
+        mkdir -p _site
+        
+        # 复制所有必要的文件到_site目录
+        cp index.html _site/
+        cp -r data _site/
+        
+        # 复制其他可能需要的静态资源
+        [ -f "luo_xiang.jpg" ] && cp luo_xiang.jpg _site/
+        [ -f "oc.png" ] && cp oc.png _site/
+        [ -f "omg.png" ] && cp omg.png _site/
         
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v2  # 更新到 v2
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: '_site'  # 明确指定上传的路径
       
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v2  # 更新到 v2
+      uses: actions/deploy-pages@v2
