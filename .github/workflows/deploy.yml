@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: su-12321/weather-
-          token: ${{ secrets.ACCESS_TOKEN }}
+          token: ${{ secrets.TOKEN_B }}
           path: temp-private-repo
           sparse-checkout: |
             weather_data.json
