@@ -10,7 +10,7 @@ on:
   repository_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -43,7 +43,7 @@ jobs:
           echo "私有仓库内容:"
           ls -la private-data/
           echo "检查文件是否存在:"
-          ls -la private-data/weather_data.json private-data/joke.txt || echo "文件不存在"
+          ls -la private-data/weather_data.json || echo "文件不存在"
           
           mkdir -p data
           echo "复制前 data 目录内容:"
@@ -51,7 +51,6 @@ jobs:
           
           # 复制文件并检查结果
           cp -v private-data/weather_data.json data/
-          cp -v private-data/joke.txt data/
           
           echo "复制后 data 目录内容:"
           ls -la data/
@@ -80,4 +79,4 @@ jobs:
           sleep 10
           echo "尝试访问部署的文件:"
           curl -s "${{ steps.deployment.outputs.page_url }}/data/weather_data.json" | head -n 2 || echo "无法访问 weather_data.json"
-          curl -s "${{ steps.deployment.outputs.page_url }}/data/joke.txt" | head -n 2 || echo "无法访问 joke.txt"
+          
