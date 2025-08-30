@@ -1,55 +1,58 @@
-name: Deploy to GitHub Pages
+name: Fetch Weather Data from Private Repo
 
 on:
-  schedule:
-    - cron: '30 */6 * * *'
+  # 在推送到主分支时触发
+  push:
+    branches: ["main"]
+  
+  # 允许手动触发
   workflow_dispatch:
-  repository_dispatch:
+  
+  # 定时任务：每6小时运行一次
+  schedule:
+    - cron: '0 */6 * * *'
 
 jobs:
-  deploy:
+  fetch-weather-data:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # 需要写入权限来推送更改
     
     steps:
-    # 1. 拉取公共仓库（主分支）
-    - name: Checkout public repo
-      uses: actions/checkout@v4
-      with:
-        ref: main
-        token: ${{ secrets.ACCESS_TOKEN }}  # 使用具有写入权限的令牌
-
-    # 2. 拉取私有仓库（天气数据）
-    - name: Checkout private repo
-      uses: actions/checkout@v4
-      with:
-        repository: su-12321/weather-
-        token: ${{ secrets.ACCESS_TOKEN }}
-        path: private-data
-
-    # 3. 从私有仓库复制数据到公共仓库的 data 文件夹
-    - name: Copy weather data
-      run: |
-        mkdir -p data
-        cp private-data/weather_data.json data/
-        cp private-data/joke.txt data/
-        ls -la data/  # 调试：确认文件已复制
-
-    # 4. 检查根目录静态资源
-    - name: Check static assets
-      run: |
-        [ -f "luo_xiang.jpg" ] && echo "luo_xiang.jpg exists"
-        [ -f "oc.png" ] && echo "oc.png exists"
-        [ -f "omg.png" ] && echo "omg.png exists"
-
-    # 5. 提交更改到主分支
-    - name: Commit and push changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add data/
-        git status  # 查看更改状态
-        git diff --cached --stat  # 查看将要提交的更改
-        git commit -m "Update weather data - $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
-        git push origin main
+      # 1. 检出当前公共仓库
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        
+      # 2. 从私有仓库拉取 weather_data.json
+      - name: Fetch weather data from private repo
+        uses: actions/checkout@v4
+        with:
+          repository: su-12321/weather-
+          token: ${{ secrets.ACCESS_TOKEN }}
+          path: temp-private-repo
+          sparse-checkout: |
+            weather_data.json
+          sparse-checkout-cone-mode: false
+        
+      # 3. 创建data目录（如果不存在）并复制文件
+      - name: Copy weather data to data directory
+        run: |
+          mkdir -p data
+          cp temp-private-repo/weather_data.json data/
+          echo "文件已复制到data目录:"
+          ls -la data/
+          
+      # 4. 清理临时目录
+      - name: Clean up temporary directory
+        run: rm -rf temp-private-repo
+        
+      # 5. 提交更改（可选）
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/weather_data.json
+          if ! git diff --staged --quiet; then
+            git commit -m "自动更新天气数据 [skip ci]"
+            git push
+          else
+            echo "没有更改，跳过提交"
+          fi
