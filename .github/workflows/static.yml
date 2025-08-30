@@ -27,13 +27,16 @@ jobs:
     steps:
       - name: Checkout public repo
         uses: actions/checkout@v4
+        with:
+          # 添加这行以确保后续git操作使用正确的权限
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # 添加从私有仓库拉取数据的步骤
       - name: Checkout private repo (weather data)
         uses: actions/checkout@v4
         with:
           repository: su-12321/weather-
-          token: ${{ secrets.ACCESS_TOKEN }}
+          token: ${{ secrets.TOKEN_B }}  # 使用您的个人访问令牌
           path: private-data
 
       # 详细调试步骤
@@ -43,7 +46,7 @@ jobs:
           echo "私有仓库内容:"
           ls -la private-data/
           echo "检查文件是否存在:"
-          ls -la private-data/weather_data.json || echo "文件不存在"
+          ls -la private-data/weather_data.json || echo "weather_data.json 文件不存在"
           
           mkdir -p data
           echo "复制前 data 目录内容:"
@@ -57,7 +60,6 @@ jobs:
           
           echo "验证文件内容:"
           head -n 2 data/weather_data.json || echo "无法读取 weather_data.json"
-          head -n 2 data/joke.txt || echo "无法读取 joke.txt"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -79,4 +81,3 @@ jobs:
           sleep 10
           echo "尝试访问部署的文件:"
           curl -s "${{ steps.deployment.outputs.page_url }}/data/weather_data.json" | head -n 2 || echo "无法访问 weather_data.json"
-          
