@@ -806,7 +806,7 @@
 
             // 加载冷笑话
             function loadJokes() {
-                fetch('data/weather_data.json')
+                fetch('/weather_data.json')
                     .then(response => response.json())
                     .then(data => {
                         if (data && data.jokes) {
