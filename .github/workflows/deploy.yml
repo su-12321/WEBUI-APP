@@ -2,58 +2,55 @@ name: Deploy to GitHub Pages
 
 on:
   schedule:
-    - cron: '30 */6 * * *'  # 每6小时执行一次（与私有仓库数据更新错开30分钟）
-  workflow_dispatch:  # 允许在GitHub界面手动触发部署
-  repository_dispatch:  # 允许从私有仓库（weather-）通过API触发部署
+    - cron: '30 */6 * * *'  # 每6小时执行（与私有仓库更新错开30分钟）
+  workflow_dispatch:  # 手动触发
+  repository_dispatch:  # 私有仓库API触发
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # 允许读取公共仓库（WEATHER-APP_WEBUI-APP）代码
-      pages: write    # 允许向GitHub Pages写入部署内容
-      id-token: write # 允许生成身份令牌（部署Pages必需的安全验证）
+      contents: read    # 读取公共仓库代码
+      pages: write      # 写入GitHub Pages
+      id-token: write   # 生成部署身份令牌
     
     steps:
-    # 步骤1：拉取公共仓库代码（含index.html、静态图片等）
-    - name: Checkout public repo (WEATHER-APP_WEBUI-APP)
-      uses: actions/checkout@v4  # 使用actions/checkout的v4版本（当前最新稳定版）
-      
-    # 步骤2：拉取私有仓库（weather-）的天气数据，存到private-data文件夹
-    - name: Checkout private repo # Checkout private repo (weather data: su-12321/weather-)
-      uses: actions/checkout@v4  # 同样使用v4版本，保持一致性
+    # 1. 拉取公共仓库（含index.html、图片等）
+    - name: Checkout public repo
+      uses: actions/checkout@v4
+
+    # 2. 拉取私有仓库（天气数据）到 private-data 文件夹
+    - name: Checkout private repo (weather data)
+      uses: actions/checkout@v4
       with:
-        repository: su-12321/weather-  # 私有仓库的完整路径（无斜杠，正确名称）
-        token: ${{ secrets.ACCESS_TOKEN }}  # 用于访问私有仓库的令牌（存于Secrets）
-        path: private-data  # 拉取的私有仓库内容放在"private-data"文件夹，避免与公共仓库文件冲突
-        
-    # 步骤3：初始化GitHub Pages配置（获取部署基础URL、禁用Jekyll等）
-    - name: Setup GitHub Pages environment
-      uses: actions/configure-pages@v4  # 正确使用v4版本（之前错误标注为v3，此处修正）
-      
-    # 步骤4：将私有仓库的天气数据复制到公共仓库的data文件夹（供index.html读取）
+        repository: su-12321/weather-  # 私有仓库完整路径
+        token: ${{ secrets.ACCESS_TOKEN }}  # 私有仓库访问令牌（需有repo权限）
+        path: private-data  # 私有仓库内容存到 private-data 文件夹
+
+    # 3. 配置GitHub Pages环境（获取部署URL、禁用Jekyll等）
+    - name: Setup GitHub Pages
+      uses: actions/configure-pages@v4
+
+    # 4. 从私有仓库复制数据到公共仓库的 data 文件夹
     - name: Copy weather data to public repo
       run: |
-        mkdir -p data  # 在公共仓库根目录创建"data"文件夹（用于存放数据文件）
-        cp weather-/weather_data.json data/  # 复制天气数据文件
-        cp weather-/joke.txt data/  # 复制玩笑文本文件（若index.html需要）
-        
-    # 步骤5：准备部署文件（无需_build，直接用根目录文件，之前注释误提"替代Jekyll"，此处修正）
-    - name: Prepare deployment files (root directory)
+        mkdir -p data
+        cp private-data/weather_data.json data/  # 从 private-data 复制数据文件
+        cp private-data/joke.txt data/           # 从 private-data 复制文本文件
+
+    # 5. 检查根目录静态资源（确保图片可访问）
+    - name: Check static assets in root
       run: |
-        # 检查并保留根目录的静态图片（确保index.html引用的图片存在）
-        [ -f "luo_xiang.jpg" ] && echo "luo_xiang.jpg exists (no need to move)"
-        [ -f "oc.png" ] && echo "oc.png exists (no need to move)"
-        [ -f "omg.png" ] && echo "omg.png exists (no need to move)"
-        # 无需创建_site，直接使用根目录（含index.html、data/、图片）作为部署源
-        
-    # 步骤6：上传根目录作为部署工件（之前错误指向_site，此处修正为根目录）
-    - name: Upload WEATHER-APP_WEBUI-APP directory as Pages artifact
-      uses: actions/upload-pages-artifact@v3  # 使用v3版本（当前最新稳定版，专用于Pages）
+        [ -f "luo_xiang.jpg" ] && echo "luo_xiang.jpg exists"
+        [ -f "oc.png" ] && echo "oc.png exists"
+        [ -f "omg.png" ] && echo "omg.png exists"
+
+    # 6. 上传「根目录」作为Pages部署工件
+    - name: Upload root directory as Pages artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        path: .  # 部署源为"当前目录"（即公共仓库根目录），包含所有必要文件
-        
-    # 步骤7：将工件部署到GitHub Pages
+        path: .  # 上传当前目录（根目录）所有文件（含index.html、data/、图片）
+
+    # 7. 部署到GitHub Pages
     - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v3  # 使用v3版本（与upload-pages-artifact版本匹配）
+      uses: actions/deploy-pages@v3
