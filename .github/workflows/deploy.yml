@@ -2,55 +2,52 @@ name: Deploy to GitHub Pages
 
 on:
   schedule:
-    - cron: '30 */6 * * *'  # 每6小时执行（与私有仓库更新错开30分钟）
-  workflow_dispatch:  # 手动触发
-  repository_dispatch:  # 私有仓库API触发
+    - cron: '30 */6 * * *'
+  workflow_dispatch:
+  repository_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read    # 读取公共仓库代码
-      pages: write      # 写入GitHub Pages
-      id-token: write   # 生成部署身份令牌
+      contents: write  # 需要写入权限来推送更改
     
     steps:
-    # 1. 拉取公共仓库（含index.html、图片等）
+    # 1. 拉取公共仓库
     - name: Checkout public repo
       uses: actions/checkout@v4
+      with:
+        ref: main
+        token: ${{ secrets.ACCESS_TOKEN }}  # 使用具有写入权限的令牌
 
-    # 2. 拉取私有仓库（天气数据）到 private-data 文件夹
-    - name: Checkout private repo (weather data)
+    # 2. 拉取私有仓库（天气数据）
+    - name: Checkout private repo
       uses: actions/checkout@v4
       with:
-        repository: su-12321/weather-  # 私有仓库完整路径
-        token: ${{ secrets.ACCESS_TOKEN }}  # 私有仓库访问令牌（需有repo权限）
-        path: private-data  # 私有仓库内容存到 private-data 文件夹
+        repository: su-12321/weather-
+        token: ${{ secrets.ACCESS_TOKEN }}
+        path: private-data
 
-    # 3. 配置GitHub Pages环境（获取部署URL、禁用Jekyll等）
-    - name: Setup GitHub Pages
-      uses: actions/configure-pages@v4
-
-    # 4. 从私有仓库复制数据到公共仓库的 data 文件夹
-    - name: Copy weather data to public repo
+    # 3. 从私有仓库复制数据到公共仓库的 data 文件夹
+    - name: Copy weather data
       run: |
         mkdir -p data
-        cp private-data/weather_data.json data/  # 从 private-data 复制数据文件
-        cp private-data/joke.txt data/           # 从 private-data 复制文本文件
+        cp private-data/weather_data.json data/
+        cp private-data/joke.txt data/
+        ls -la data/  # 调试：确认文件已复制
 
-    # 5. 检查根目录静态资源（确保图片可访问）
-    - name: Check static assets in root
+    # 4. 检查根目录静态资源
+    - name: Check static assets
       run: |
         [ -f "luo_xiang.jpg" ] && echo "luo_xiang.jpg exists"
         [ -f "oc.png" ] && echo "oc.png exists"
         [ -f "omg.png" ] && echo "omg.png exists"
 
-    # 6. 上传「根目录」作为Pages部署工件
-    - name: Upload root directory as Pages artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: .  # 上传当前目录（根目录）所有文件（含index.html、data/、图片）
-
-    # 7. 部署到GitHub Pages
-    - name: Deploy to GitHub Pages
-      uses: actions/deploy-pages@v3
+    # 5. 提交更改到 main 分支
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/
+        git commit -m "Update weather data - $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
+        git push origin main
