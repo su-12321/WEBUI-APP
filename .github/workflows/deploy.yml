@@ -1,58 +1,83 @@
-name: Fetch Weather Data from Private Repo
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
 
 on:
-  # 在推送到主分支时触发
   push:
     branches: ["main"]
-  
-  # 允许手动触发
-  workflow_dispatch:
-  
-  # 定时任务：每6小时运行一次
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '30 */6 * * *'
+  workflow_dispatch:
+  repository_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  fetch-weather-data:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    
     steps:
-      # 1. 检出当前公共仓库
-      - name: Checkout current repository
-        uses: actions/checkout@v4
-        
-      # 2. 从私有仓库拉取 weather_data.json
-      - name: Fetch weather data from private repo
+      - name: Checkout public repo
         uses: actions/checkout@v4
         with:
-          repository: su-12321/weather-
-          token: ${{ secrets.TOKEN_B }}
-          path: temp-private-repo
-          sparse-checkout: |
-            weather_data.json
-          sparse-checkout-cone-mode: false
-        
-      # 3. 创建data目录（如果不存在）并复制文件
-      - name: Copy weather data to data directory
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 直接使用API获取文件内容并替换
+      - name: Download and replace weather data
         run: |
-          mkdir -p data
-          cp temp-private-repo/weather_data.json data/
-          echo "文件已复制到data目录:"
-          ls -la data/
+          echo "=== 直接下载并替换weather_data.json ==="
           
-      # 4. 清理临时目录
-      - name: Clean up temporary directory
-        run: rm -rf temp-private-repo
-        
-      # 5. 提交更改（可选）
-      - name: Commit and push if changed
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add data/weather_data.json
-          if ! git diff --staged --quiet; then
-            git commit -m "自动更新天气数据 [skip ci]"
-            git push
-          else
-            echo "没有更改，跳过提交"
+          # 创建data目录（如果不存在）
+          mkdir -p data
+          
+          # 删除现有文件（如果存在）
+          if [ -f "data/weather_data.json" ]; then
+            rm data/weather_data.json
+            echo "已删除旧文件"
           fi
+          
+          # 使用API直接下载文件内容
+          echo "从私有仓库下载文件..."
+          curl -s -H "Authorization: token ${{ secrets.TOKEN_ }}" \
+            -H "Accept: application/vnd.github.v3.raw" \
+            -o data/weather_data.json \
+            https://api.github.com/repos/su-12321/weather-/contents/weather_data.json
+          
+          # 验证下载结果
+          if [ -f "data/weather_data.json" ]; then
+            echo "✅ 文件下载成功"
+            echo "文件大小: $(wc -c < data/weather_data.json) 字节"
+            echo "文件内容前几行:"
+            head -n 3 data/weather_data.json
+          else
+            echo "❌ 文件下载失败"
+            exit 1
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verify deployment
+        run: |
+          echo "部署完成，页面URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "等待几秒钟让部署生效..."
+          sleep 10
+          echo "尝试访问部署的文件:"
+          curl -s "${{ steps.deployment.outputs.page_url }}/data/weather_data.json" | head -n 3 || echo "无法访问 weather_data.json"
