@@ -7,7 +7,6 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐕‍</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* 样式保持不变 */
         :root {
             --bg-color: #f5f7fa;
             --text-color: #333;
@@ -223,6 +222,7 @@
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-top: 15px;
+            margin-bottom: 15px;
         }
 
         .weather-detail {
@@ -283,6 +283,23 @@
             padding: 20px;
         }
 
+        /* 生活建议按钮样式 */
+        .suggestion-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--btn-bg);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+
+        .suggestion-button:hover {
+            background-color: var(--btn-hover);
+        }
+
         /* 冷笑话按钮样式 */
         .joke-button {
             position: fixed;
@@ -305,34 +322,6 @@
         .joke-button:hover {
             background: var(--btn-hover);
             transform: scale(1.1);
-        }
-
-        /* 冷笑话弹窗样式 */
-        .joke-modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--modal-bg);
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
-            z-index: 2000;
-            max-width: 600px;
-            width: 80%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .joke-content {
-            max-height: 60vh;
-            overflow-y: auto;
-            padding: 10px;
-            background: var(--law-section-bg);
-            border-radius: 5px;
-            white-space: pre-line;
-            line-height: 1.8;
         }
 
         /* 弹窗样式 */
@@ -371,6 +360,37 @@
             font-size: 1.5em;
             cursor: pointer;
             color: #666;
+        }
+
+        .joke-content, .suggestion-content {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 10px;
+            background: var(--law-section-bg);
+            border-radius: 5px;
+            white-space: pre-line;
+            line-height: 1.8;
+        }
+
+        .suggestion-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-title {
+            font-weight: bold;
+            color: var(--link-color);
+            margin-bottom: 5px;
+        }
+
+        .suggestion-details {
+            color: var(--text-color);
+            font-size: 0.9em;
         }
 
         /* OC内容样式 */
@@ -551,6 +571,10 @@
                                         <div id="wind-scale">--级</div>
                                     </div>
                                 </div>
+                                
+                                <button class="suggestion-button" id="suggestionButton">
+                                    <i class="fas fa-info-circle"></i> 查看生活建议
+                                </button>
                             </div>
                             
                             <div class="forecast-container">
@@ -577,17 +601,26 @@
         </footer>
     </div>
 
-    <!-- 冷笑话按钮 -->
+    <!-- 生活建议按钮 -->
     <div class="joke-button" id="jokeButton">
         <i class="fas fa-smile"></i>
     </div>
 
     <!-- 冷笑话弹窗 -->
-    <div id="jokeModal" class="joke-modal">
+    <div id="jokeModal" class="modal">
         <span class="modal-close" data-modal="jokeModal">&times;</span>
         <h3>😜 冷笑话合集 & 废话文学</h3>
         <div class="joke-content" id="joke-content">
             <!-- 笑话内容将通过JS动态加载 -->
+        </div>
+    </div>
+
+    <!-- 生活建议弹窗 -->
+    <div id="suggestionModal" class="modal">
+        <span class="modal-close" data-modal="suggestionModal">&times;</span>
+        <h3>📋 生活指数建议</h3>
+        <div class="suggestion-content" id="suggestion-content">
+            <!-- 生活建议内容将通过JS动态加载 -->
         </div>
     </div>
 
@@ -661,7 +694,7 @@
                     localStorage.setItem('theme', 'day');
                 } else {
                     document.documentElement.setAttribute('data-theme', 'night');
-                    themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                    themeToggle.innerHTML = '<i class="fas fa-sun'></i>';
                     localStorage.setItem('theme', 'night');
                 }
             });
@@ -695,6 +728,12 @@
                 showModal('jokeModal');
             });
 
+            // 生活建议按钮点击事件
+            document.getElementById('suggestionButton').addEventListener('click', function() {
+                loadSuggestions();
+                showModal('suggestionModal');
+            });
+
             // 为所有关闭按钮添加事件监听
             document.querySelectorAll('.modal-close').forEach(function(closeBtn) {
                 closeBtn.addEventListener('click', function() {
@@ -708,6 +747,7 @@
                 closeModal('disclaimerModal');
                 closeModal('projectModal');
                 closeModal('jokeModal');
+                closeModal('suggestionModal');
             });
 
             // 按ESC键关闭所有弹窗
@@ -716,6 +756,7 @@
                     closeModal('disclaimerModal');
                     closeModal('projectModal');
                     closeModal('jokeModal');
+                    closeModal('suggestionModal');
                 }
             });
 
@@ -736,9 +777,14 @@
                 document.getElementById('weather-error').style.display = 'none';
                 document.getElementById('weather-results').style.display = 'none';
                 
-                // 从本地JSON文件加载数据
+                // 从本地JSON文件加载数据 - 使用相对路径
                 fetch('weather_data.json')
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络响应不正常');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data && data.now) {
                             displayWeather(data);
@@ -802,6 +848,94 @@
                 
                 // 显示结果
                 document.getElementById('weather-results').style.display = 'block';
+                
+                // 存储天气数据供生活建议使用
+                window.weatherData = data;
+            }
+
+            // 加载生活建议
+            function loadSuggestions() {
+                if (!window.weatherData || !window.weatherData.suggestion) {
+                    // 如果没有数据，尝试重新加载
+                    fetch('weather_data.json')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data && data.suggestion) {
+                                displaySuggestions(data.suggestion);
+                            } else {
+                                displaySuggestions(null);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('加载生活建议失败:', error);
+                            displaySuggestions(null);
+                        });
+                } else {
+                    displaySuggestions(window.weatherData.suggestion);
+                }
+            }
+
+            // 显示生活建议
+            function displaySuggestions(suggestionData) {
+                const suggestionContent = document.getElementById('suggestion-content');
+                
+                if (!suggestionData) {
+                    suggestionContent.innerHTML = "<p>无法加载生活建议数据</p>";
+                    return;
+                }
+                
+                let suggestionsHTML = '';
+                
+                // 生活建议分类映射
+                const suggestionMap = {
+                    'ac': '空调',
+                    'air_pollution': '空气污染',
+                    'airing': '晾晒',
+                    'allergy': '过敏',
+                    'beer': '饮酒',
+                    'boating': '划船',
+                    'car_washing': '洗车',
+                    'comfort': '舒适度',
+                    'dressing': '穿衣',
+                    'fishing': '钓鱼',
+                    'flu': '感冒',
+                    'kiteflying': '放风筝',
+                    'makeup': '化妆',
+                    'mood': '心情',
+                    'morning_sport': '晨练',
+                    'road_condition': '路况',
+                    'shopping': '购物',
+                    'sport': '运动',
+                    'sunscreen': '防晒',
+                    'traffic': '交通',
+                    'umbrella': '雨伞',
+                    'uv': '紫外线'
+                };
+                
+                // 显示今日的生活建议
+                const today = new Date().toISOString().split('T')[0];
+                const todaySuggestion = suggestionData.suggestion.find(s => s.date === today) || 
+                                      suggestionData.suggestion[0];
+                
+                if (todaySuggestion) {
+                    suggestionsHTML += `<h4>${todaySuggestion.date} 生活建议</h4>`;
+                    
+                    for (const [key, value] of Object.entries(todaySuggestion)) {
+                        if (key !== 'date' && value && value.brief && value.details) {
+                            const chineseKey = suggestionMap[key] || key;
+                            suggestionsHTML += `
+                                <div class="suggestion-item">
+                                    <div class="suggestion-title">${chineseKey}: ${value.brief}</div>
+                                    <div class="suggestion-details">${value.details}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    suggestionsHTML = "<p>暂无今日生活建议数据</p>";
+                }
+                
+                suggestionContent.innerHTML = suggestionsHTML;
             }
 
             // 加载冷笑话
