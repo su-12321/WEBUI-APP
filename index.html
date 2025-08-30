@@ -737,7 +737,7 @@
                 document.getElementById('weather-results').style.display = 'none';
                 
                 // 从本地JSON文件加载数据
-                fetch('/weather_data.json')
+                fetch('weather_data.json')
                     .then(response => response.json())
                     .then(data => {
                         if (data && data.now) {
@@ -806,7 +806,7 @@
 
             // 加载冷笑话
             function loadJokes() {
-                fetch('/weather_data.json')
+                fetch('weather_data.json')
                     .then(response => response.json())
                     .then(data => {
                         if (data && data.jokes) {
