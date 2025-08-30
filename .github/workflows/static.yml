@@ -2,30 +2,23 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-
-  # 添加您的自定义触发器
   schedule:
-    - cron: '30 */6 * * *'  # 每6小时执行（与私有仓库更新错开30分钟）
-  workflow_dispatch:  # 手动触发
-  repository_dispatch:  # 私有仓库API触发
+    - cron: '30 */6 * * *'
+  workflow_dispatch:
+  repository_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
     environment:
       name: github-pages
@@ -43,13 +36,29 @@ jobs:
           token: ${{ secrets.ACCESS_TOKEN }}
           path: private-data
 
-      # 从私有仓库复制数据到公共仓库的 data 文件夹
-      - name: Copy weather data to public repo
+      # 详细调试步骤
+      - name: Debug file copy process
         run: |
+          echo "当前工作目录: $(pwd)"
+          echo "私有仓库内容:"
+          ls -la private-data/
+          echo "检查文件是否存在:"
+          ls -la private-data/weather_data.json private-data/joke.txt || echo "文件不存在"
+          
           mkdir -p data
-          cp private-data/weather_data.json data/
-          cp private-data/joke.txt data/
-          ls -la data/  # 调试：确认文件已复制
+          echo "复制前 data 目录内容:"
+          ls -la data/ || echo "data 目录不存在"
+          
+          # 复制文件并检查结果
+          cp -v private-data/weather_data.json data/
+          cp -v private-data/joke.txt data/
+          
+          echo "复制后 data 目录内容:"
+          ls -la data/
+          
+          echo "验证文件内容:"
+          head -n 2 data/weather_data.json || echo "无法读取 weather_data.json"
+          head -n 2 data/joke.txt || echo "无法读取 joke.txt"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -57,9 +66,18 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository (now including the data folder)
           path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # 添加部署后验证步骤
+      - name: Verify deployment
+        run: |
+          echo "部署完成，页面URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "等待几秒钟让部署生效..."
+          sleep 10
+          echo "尝试访问部署的文件:"
+          curl -s "${{ steps.deployment.outputs.page_url }}/data/weather_data.json" | head -n 2 || echo "无法访问 weather_data.json"
+          curl -s "${{ steps.deployment.outputs.page_url }}/data/joke.txt" | head -n 2 || echo "无法访问 joke.txt"
