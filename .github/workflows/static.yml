@@ -1,0 +1,65 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # 添加您的自定义触发器
+  schedule:
+    - cron: '30 */6 * * *'  # 每6小时执行（与私有仓库更新错开30分钟）
+  workflow_dispatch:  # 手动触发
+  repository_dispatch:  # 私有仓库API触发
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Single deploy job since we're just deploying
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+
+      # 添加从私有仓库拉取数据的步骤
+      - name: Checkout private repo (weather data)
+        uses: actions/checkout@v4
+        with:
+          repository: su-12321/weather-
+          token: ${{ secrets.ACCESS_TOKEN }}
+          path: private-data
+
+      # 从私有仓库复制数据到公共仓库的 data 文件夹
+      - name: Copy weather data to public repo
+        run: |
+          mkdir -p data
+          cp private-data/weather_data.json data/
+          cp private-data/joke.txt data/
+          ls -la data/  # 调试：确认文件已复制
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository (now including the data folder)
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
