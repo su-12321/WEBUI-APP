@@ -41,7 +41,7 @@ jobs:
           echo "正在从私有仓库获取天气数据..."
           
           # 使用 GitHub API 直接下载 weather_data.json 文件到根目录
-          curl -s -H "Authorization: token ${{ secrets.TOKEN_ }}" \
+          curl -s -H "Authorization: token ${{ secrets.TOKEN_B }}" \
             -H "Accept: application/vnd.github.v3.raw" \
             -o weather_data.json \
             https://api.github.com/repos/su-12321/weather-/contents/weather_data.json
