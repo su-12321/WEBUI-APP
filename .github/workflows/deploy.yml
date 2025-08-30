@@ -13,7 +13,7 @@ jobs:
       contents: write  # 需要写入权限来推送更改
     
     steps:
-    # 1. 拉取公共仓库
+    # 1. 拉取公共仓库（主分支）
     - name: Checkout public repo
       uses: actions/checkout@v4
       with:
@@ -43,11 +43,13 @@ jobs:
         [ -f "oc.png" ] && echo "oc.png exists"
         [ -f "omg.png" ] && echo "omg.png exists"
 
-    # 5. 提交更改到 main 分支
+    # 5. 提交更改到主分支
     - name: Commit and push changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add data/
+        git status  # 查看更改状态
+        git diff --cached --stat  # 查看将要提交的更改
         git commit -m "Update weather data - $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
         git push origin main
